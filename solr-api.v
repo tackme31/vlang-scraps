@@ -7,13 +7,13 @@ struct SolrConnection {
 }
 
 struct SolrResult {
-	response SolrResponse
+	response string [raw]
 }
 
 struct SolrResponse {
 	num_found int [json:numFound]
 	start int
-	docs string
+	docs string [raw]
 }
 
 fn new_connection(url, core string) SolrConnection {
@@ -29,8 +29,9 @@ fn (s SolrConnection) search(query string) ?SolrResponse {
 	request := http.new_request('GET', url, '') or { return error(err) }
 	response := request.do() or { return error(err) }
 	result := json.decode(SolrResult, response.text) or { return error(err)}
+	solr_res := json.decode(SolrResponse, result.response) or { return error(err) }
 
-	return result.response
+	return solr_res
 }
 
 fn (s SolrConnection) add<T>(data []T) string {
@@ -47,7 +48,6 @@ fn (s SolrConnection) add<T>(data []T) string {
 
 fn main() {
 	conn := new_connection('http://localhost:8983/solr', 'vlang_core')
-	docs := [Document { test_t: 'parsejsonf' }]
-	conn.add(docs)
-	response := conn.search('test_t:pop') or { exit }
+	res := conn.search('test_t:*') or { exit }
+	println(res.docs)
 }
